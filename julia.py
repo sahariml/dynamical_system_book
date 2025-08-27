@@ -1,34 +1,95 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Paramètre de la fonction
-c = -0.8 + 0.156j
-#c=-1
-#c=0
-# Taille et domaine
-width, height = 800, 800
-xmin, xmax = -1.5, 1.5
-ymin, ymax = -1.5, 1.5
-max_iter = 300
+# -------------------------------
+# Fonctions utilitaires
+# -------------------------------
+def aron(x):
+    """Si imag(x) est très petit, force partie imag à 0."""
+    return complex(np.real(x), 0.0) if abs(np.imag(x)) < 1e-8 else x
 
-# Grille complexe
-x = np.linspace(xmin, xmax, width)
-y = np.linspace(ymin, ymax, height)
-X, Y = np.meshgrid(x, y)
-Z = X + 1j * Y
-img = np.zeros(Z.shape, dtype=int)
+def som(m):
+    """Somme des 3^k de k=0 à m."""
+    return sum(3**k for k in range(m+1))
 
-for i in range(max_iter):
-    mask = np.abs(Z) <= 2
-    Z[mask] = Z[mask] ** 2 + c
-    img[mask] += 1
+def argument(x):
+    """Argument complexe en radians."""
+    pi = 2.0 * np.arccos(0.0)
+    if np.real(x) < 0.0 and abs(np.imag(x)) < 1e-18:
+        return pi
+    else:
+        return 2.0 * np.arctan(np.imag(x) / (np.real(x) + abs(x)))
 
-plt.figure(figsize=(8, 8))
-plt.imshow(img, extent=[xmin, xmax, ymin, ymax], cmap='inferno', origin='lower')
-#plt.title(f"Ensemble de Julia pour c = {c}")
-plt.tight_layout()
-plt.xlabel('$Re(z)$')
-plt.ylabel('$Im(z)$')
-#plt.axis('off')
-plt.savefig("julia_0.eps", dpi=300, bbox_inches='tight')
+def cub(x, k):
+    """Racine cubique complexe avec branche k."""
+    pi = 2.0 * np.arccos(0.0)
+    aa = argument(x)
+    bb = abs(x)
+    return bb**(1.0/3.0) * complex(np.cos((aa + 2*k*pi)/3.0),
+                                   np.sin((aa + 2*k*pi)/3.0))
+
+def phie(z, k):
+    """Fonction phie."""
+    return cub(-2.0 + z**3 + 2.0*np.sqrt(1.0 - z**3), k) + \
+           (z**2) / cub(-2.0 + z**3 + 2.0*np.sqrt(1.0 - z**3), k)
+
+def psi(z, k):
+    """Fonction psi."""
+    return cub(-2.0 + z**3 + 2.0*np.sqrt(1.0 - z**3), k) - \
+           (z**2) / cub(-2.0 + z**3 + 2.0*np.sqrt(1.0 - z**3), k)
+
+def xster(x):
+    return (2.0*np.real(x)) / (abs(x)**2 + 1.0)
+
+def yster(x):
+    return (2.0*np.imag(x)) / (abs(x)**2 + 1.0)
+
+def zster(x):
+    return -((abs(x)**2 - 1.0) / (abs(x)**2 + 1.0))
+
+def rec(x, k):
+    return 0.5 * (phie(x, k) + x)
+
+# -------------------------------
+# Programme principal
+# -------------------------------
+kmax = 13  # réduire un peu pour tests rapides
+z1 = complex(-(0.5) * 2**(2.0/3.0), 0.0)
+z2 = complex((0.25) * 2**(2.0/3.0),
+             -(0.25) * np.sqrt(3) * 2**(2.0/3.0))
+z3 = complex((0.25) * 2**(2.0/3.0),
+              (0.25) * np.sqrt(3) * 2**(2.0/3.0))
+
+# Initialisation de A
+A = np.zeros(som(kmax), dtype=complex)
+A[0] = 0.0 + 0.0j
+A[1] = z1
+A[2] = z2
+A[3] = z3
+
+# Remplissage récursif
+for k in range(1, kmax):
+    c = 0
+    deb = som(k-1)
+    fin = som(k)
+    for i in range(deb, fin):
+        for j in range(1, 4):
+            c += 1
+            A[fin + c - 1] = aron(rec(A[i], j))
+
+# -------------------------------
+# Sauvegarde en .dat
+# -------------------------------
+np.savetxt("out.dat", np.column_stack((np.real(A), np.imag(A))))
+
+# -------------------------------
+# Tracé Matplotlib
+# -------------------------------
+plt.figure(figsize=(6, 6))
+plt.scatter(np.real(A), np.imag(A), s=0.5, color="blue")
+plt.xlabel("Re(z)")
+plt.ylabel("Im(z)")
+plt.title("Points générés (Python)")
+plt.axis("equal")
+plt.grid(True)
 plt.show()
