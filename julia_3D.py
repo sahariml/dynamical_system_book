@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-#from mpl_toolkits.mplot3d import Axes3D  # nécessaire pour activer 3D
+from mpl_toolkits.mplot3d import Axes3D
 
 pi = 2.0 * np.arccos(0.0)
 
@@ -84,14 +84,52 @@ Y = [yster(z) for z in A]
 Z = [zster(z) for z in A]
 
 # ================================
+# Création de la sphère et des géodésiques
+# ================================
+# Création d'une grille pour la sphère
+u = np.linspace(0, 2 * np.pi, 50)
+v = np.linspace(0, np.pi, 25)
+x_sphere = np.outer(np.cos(u), np.sin(v))
+y_sphere = np.outer(np.sin(u), np.sin(v))
+z_sphere = np.outer(np.ones(np.size(u)), np.cos(v))
+
+# Création de géodésiques (grands cercles)
+num_geodesics = 12
+geodesics = []
+for i in range(num_geodesics):
+    theta = i * np.pi / num_geodesics
+    u_geo = np.linspace(0, 2 * np.pi, 100)
+    x_geo = np.cos(u_geo) * np.sin(theta)
+    y_geo = np.sin(u_geo) * np.sin(theta)
+    z_geo = np.cos(theta) * np.ones_like(u_geo)
+    geodesics.append((x_geo, y_geo, z_geo))
+
+# ================================
 # Tracé 3D
 # ================================
-fig = plt.figure(figsize=(8, 8))
+fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter(X, Y, Z, s=2, c='b', alpha=0.7)
+
+# Tracer la sphère (en fil de fer)
+ax.plot_wireframe(x_sphere, y_sphere, z_sphere, color='gray', alpha=0.1, linewidth=0.5)
+
+# Tracer les géodésiques
+for geo in geodesics:
+    ax.plot(geo[0], geo[1], geo[2], color='gray', alpha=0.1, linewidth=1)
+
+# Tracer les points de la projection stéréographique
+ax.scatter(X, Y, Z, s=2, c='blue', alpha=0.7)
+
+# Configuration des axes
 ax.set_xlabel("$X$")
 ax.set_ylabel("$Y$")
 ax.set_zlabel("$Z$")
-#ax.set_title(f"Projection stéréographique (kmax={kmax})")
 ax.set_box_aspect([1, 1, 1])
+
+# Ajuster les limites pour une meilleure visualisation
+max_range = 1.2
+ax.set_xlim(-max_range, max_range)
+ax.set_ylim(-max_range, max_range)
+ax.set_zlim(-max_range, max_range)
+
 plt.show()
